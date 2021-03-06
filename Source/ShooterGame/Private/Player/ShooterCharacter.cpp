@@ -67,6 +67,8 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
 
 	BaseTurnRate = 45.f;
 	BaseLookUpRate = 45.f;
+
+	DistTeleport = 1000.f;
 }
 
 void AShooterCharacter::PostInitializeComponents()
@@ -101,6 +103,8 @@ void AShooterCharacter::PostInitializeComponents()
 			UGameplayStatics::PlaySoundAtLocation(this, RespawnSound, GetActorLocation());
 		}
 	}
+
+	ShooterMovementComponent = Cast<UShooterCharacterMovement>(Super::GetMovementComponent());
 }
 
 void AShooterCharacter::Destroyed()
@@ -764,6 +768,15 @@ void AShooterCharacter::SetRunning(bool bNewRunning, bool bToggle)
 	}
 }
 
+void AShooterCharacter::TeleportForward()
+{
+	UShooterCharacterMovement* MoveComp = Cast<UShooterCharacterMovement>(this->GetCharacterMovement());
+
+	if (MoveComp) {
+		MoveComp->TeleportForward(DistTeleport);
+	}
+}
+
 bool AShooterCharacter::ServerSetRunning_Validate(bool bNewRunning, bool bToggle)
 {
 	return true;
@@ -870,6 +883,8 @@ void AShooterCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindAction("Run", IE_Pressed, this, &AShooterCharacter::OnStartRunning);
 	PlayerInputComponent->BindAction("RunToggle", IE_Pressed, this, &AShooterCharacter::OnStartRunningToggle);
 	PlayerInputComponent->BindAction("Run", IE_Released, this, &AShooterCharacter::OnStopRunning);
+
+	PlayerInputComponent->BindAction("TeleportForward", IE_Pressed, this, &AShooterCharacter::TeleportForward);
 }
 
 

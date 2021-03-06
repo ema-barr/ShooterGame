@@ -13,6 +13,9 @@ class AShooterCharacter : public ACharacter
 {
 	GENERATED_UCLASS_BODY()
 
+	UFUNCTION(BlueprintCallable, Category = "Movement")
+		FORCEINLINE class UShooterCharacterMovement* GetShooterMovementComponent() const { return ShooterMovementComponent; }
+
 	virtual void BeginDestroy() override;
 
 	/** spawn inventory, setup initial variables */
@@ -112,6 +115,9 @@ class AShooterCharacter : public ACharacter
 
 	/** [server + local] change running state */
 	void SetRunning(bool bNewRunning, bool bToggle);
+
+	/** teleport player forward */
+	void TeleportForward();
 
 	//////////////////////////////////////////////////////////////////////////
 	// Animations
@@ -303,6 +309,10 @@ protected:
 	UPROPERTY(Transient, Replicated)
 	uint8 bIsTargeting : 1;
 
+	/** default teleport distance */
+	UPROPERTY(EditAnywhere, Category = "Teleport")
+		float DistTeleport;
+
 	/** modifier for max movement speed */
 	UPROPERTY(EditDefaultsOnly, Category = Pawn)
 	float RunningSpeedModifier;
@@ -383,6 +393,8 @@ protected:
 	virtual void TornOff();
 
 private:
+
+	UShooterCharacterMovement* ShooterMovementComponent;
 
 	/** Whether or not the character is moving (based on movement input). */
 	bool IsMoving();
