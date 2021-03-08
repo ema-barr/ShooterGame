@@ -326,6 +326,9 @@ protected:
 	/** Draw player's health bar. */
 	void DrawHealth();
 
+	/** Draw player's fuel bar */
+	void DrawFuelJetpack();
+
 	/** Draws match timer and player position. */
 	void DrawMatchTimerAndPosition();
 

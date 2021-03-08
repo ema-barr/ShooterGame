@@ -62,6 +62,7 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
 	bIsTargeting = false;
 	RunningSpeedModifier = 1.5f;
 	bWantsToRun = false;
+	bWantsToUseJetpack = false;
 	bWantsToFire = false;
 	LowHealthPercentage = 0.5f;
 
@@ -69,6 +70,14 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
 	BaseLookUpRate = 45.f;
 
 	DistTeleportMeters = 10.f;
+
+	StrengthJetpack = 3000.f;
+	MaxFuelJetpack = 100.f;
+	CurrentFuelJetpack = MaxFuelJetpack;
+	FuelConsumptionRate = 0.5f;
+	FuelRechargeRate = 0.1f;
+
+	PrevAirControlValue = 0.f;
 }
 
 void AShooterCharacter::PostInitializeComponents()
@@ -787,6 +796,60 @@ void AShooterCharacter::TeleportForward()
 	}
 }
 
+void AShooterCharacter::StartUsingJetpack()
+{
+	UE_LOG(LogOnline, Warning, TEXT("Start Jetpack"));
+
+	bWantsToUseJetpack = true;
+
+	UShooterCharacterMovement* MoveComp = Cast<UShooterCharacterMovement>(this->GetCharacterMovement());
+
+	if (MoveComp) {
+		PrevAirControlValue = MoveComp->AirControl;
+		MoveComp->AirControl = 1.0;
+	}
+}
+
+void AShooterCharacter::StopUsingJetpack()
+{
+	UE_LOG(LogOnline, Warning, TEXT("Stop Jetpack"));
+	bWantsToUseJetpack = false;
+
+	UShooterCharacterMovement* MoveComp = Cast<UShooterCharacterMovement>(this->GetCharacterMovement());
+
+	if (MoveComp) {
+		MoveComp->AirControl = PrevAirControlValue;
+	}
+}
+
+void AShooterCharacter::UseJetpack()
+{
+	if (CurrentFuelJetpack > 0) {
+		
+		UShooterCharacterMovement* MoveComp = Cast<UShooterCharacterMovement>(this->GetCharacterMovement());
+
+		if (MoveComp) {
+			ConsumeFuelJetpack();
+			MoveComp->AddImpulse(this->GetActorUpVector() * StrengthJetpack);
+		}
+	}
+}
+
+void AShooterCharacter::RechargeFuelJetpack()
+{
+	if (CurrentFuelJetpack < MaxFuelJetpack) {
+		float TempIncreasedFuelJetpack = CurrentFuelJetpack + (FuelRechargeRate * MaxFuelJetpack *  GetWorld()->GetDeltaSeconds());
+		CurrentFuelJetpack = FMath::Min(TempIncreasedFuelJetpack, MaxFuelJetpack);
+	}
+}
+
+void AShooterCharacter::ConsumeFuelJetpack()
+{
+	float TempDecreasedFuelJetpack = CurrentFuelJetpack - (FuelConsumptionRate * MaxFuelJetpack *  GetWorld()->GetDeltaSeconds());
+	CurrentFuelJetpack = FMath::Max(TempDecreasedFuelJetpack, 0.f);
+	CurrentFuelJetpack = FMath::Max(TempDecreasedFuelJetpack, 0.f);
+}
+
 void AShooterCharacter::UpdateRunSounds()
 {
 	const bool bIsRunSoundPlaying = RunLoopAC != nullptr && RunLoopAC->IsActive();
@@ -885,6 +948,9 @@ void AShooterCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindAction("Run", IE_Released, this, &AShooterCharacter::OnStopRunning);
 
 	PlayerInputComponent->BindAction("TeleportForward", IE_Pressed, this, &AShooterCharacter::TeleportForward);
+
+	PlayerInputComponent->BindAction("Jetpack", IE_Pressed, this, &AShooterCharacter::StartUsingJetpack);
+	PlayerInputComponent->BindAction("Jetpack", IE_Released, this, &AShooterCharacter::StopUsingJetpack);
 }
 
 
@@ -1059,10 +1125,20 @@ void AShooterCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
+	//UE_LOG(LogOnline, Warning, TEXT("Current fuel: %f"), CurrentFuelJetpack);
+
 	if (bWantsToRunToggled && !IsRunning())
 	{
 		SetRunning(false, false);
 	}
+
+	if (bWantsToUseJetpack) {
+		UseJetpack();
+	}
+	else {
+		RechargeFuelJetpack();
+	}
+
 	AShooterPlayerController* MyPC = Cast<AShooterPlayerController>(Controller);
 	if (MyPC && MyPC->HasHealthRegen())
 	{
@@ -1276,6 +1352,16 @@ bool AShooterCharacter::IsFirstPerson() const
 int32 AShooterCharacter::GetMaxHealth() const
 {
 	return GetClass()->GetDefaultObject<AShooterCharacter>()->Health;
+}
+
+float AShooterCharacter::GetMaxFuelJetpack() const
+{
+	return MaxFuelJetpack;
+}
+
+float AShooterCharacter::GetCurrentFuelJetpack() const
+{
+	return CurrentFuelJetpack;
 }
 
 bool AShooterCharacter::IsAlive() const

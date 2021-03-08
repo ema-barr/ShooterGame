@@ -119,6 +119,16 @@ class AShooterCharacter : public ACharacter
 	/** teleport player forward */
 	void TeleportForward();
 
+	/** toggle the use of jetpack */
+	void StartUsingJetpack();
+	void StopUsingJetpack();
+	/** use jetpack */
+	void UseJetpack();
+	/** recharge fuel of jetpack */
+	void RechargeFuelJetpack();
+	/** consume fuel of jetpack */
+	void ConsumeFuelJetpack();
+
 	//////////////////////////////////////////////////////////////////////////
 	// Animations
 
@@ -256,6 +266,12 @@ class AShooterCharacter : public ACharacter
 	/** get max health */
 	int32 GetMaxHealth() const;
 
+	/** get max fuel jetpack */
+	float GetMaxFuelJetpack() const;
+
+	/** get current fuel jetpack */
+	float GetCurrentFuelJetpack() const;
+
 	/** check if pawn is still alive */
 	bool IsAlive() const;
 
@@ -313,6 +329,24 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Teleport)
 		float DistTeleportMeters;
 
+	/** default strength of jetpack */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Jetpack)
+		float StrengthJetpack;
+
+	/** default max fuel of jetpack */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Jetpack)
+		float MaxFuelJetpack;
+
+	float CurrentFuelJetpack;
+
+	/** default percentage of jetpack fuel consumed every second */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Jetpack)
+		float FuelConsumptionRate;
+
+	/** default percentage of jetpack fuel recharged every second */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Jetpack)
+		float FuelRechargeRate;
+
 	/** modifier for max movement speed */
 	UPROPERTY(EditDefaultsOnly, Category = Pawn)
 	float RunningSpeedModifier;
@@ -320,6 +354,8 @@ protected:
 	/** current running state */
 	UPROPERTY(Transient, Replicated)
 	uint8 bWantsToRun : 1;
+
+	uint8 bWantsToUseJetpack : 1;
 
 	/** from gamepad running is toggled */
 	uint8 bWantsToRunToggled : 1;
@@ -398,6 +434,9 @@ private:
 
 	/** Whether or not the character is moving (based on movement input). */
 	bool IsMoving();
+
+	/** Variable that store the previous value of Air Control */
+	float PrevAirControlValue;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Damage & death

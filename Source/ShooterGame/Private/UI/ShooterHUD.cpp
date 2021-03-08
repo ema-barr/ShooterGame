@@ -333,6 +333,24 @@ void AShooterHUD::DrawHealth()
 	Canvas->DrawIcon(HealthIcon,HealthPosX + Offset * ScaleUI, HealthPosY + (HealthBar.VL - HealthIcon.VL) / 2.0f * ScaleUI, ScaleUI);
 }
 
+
+void AShooterHUD::DrawFuelJetpack()
+{
+	AShooterCharacter* MyPawn = Cast<AShooterCharacter>(GetOwningPawn());
+	Canvas->SetDrawColor(FColor::White);
+
+	const float FuelPosX = (Canvas->ClipX - HealthBarBg.UL * ScaleUI) / 2;
+	const float FuelPosY = Canvas->ClipY - (Offset + 2 * HealthBarBg.VL) * ScaleUI;
+	Canvas->DrawIcon(HealthBarBg, FuelPosX, FuelPosY, ScaleUI);
+	const float FuelAmount = FMath::Min(1.0f, MyPawn->GetCurrentFuelJetpack() / MyPawn->GetMaxFuelJetpack());
+
+	FCanvasTileItem TileItem(FVector2D(FuelPosX, FuelPosY), HealthBar.Texture->Resource,
+		FVector2D(HealthBar.UL * FuelAmount  * ScaleUI, HealthBar.VL * ScaleUI), FLinearColor::White);
+	MakeUV(HealthBar, TileItem.UV0, TileItem.UV1, HealthBar.U, HealthBar.V, HealthBar.UL * FuelAmount, HealthBar.VL);
+	TileItem.BlendMode = SE_BLEND_Translucent;
+	Canvas->DrawItem(TileItem);
+}
+
 void AShooterHUD::DrawMatchTimerAndPosition()
 {
 	AShooterGameState* const MyGameState = GetWorld()->GetGameState<AShooterGameState>();
@@ -577,6 +595,7 @@ void AShooterHUD::DrawHUD()
 		if (MyPawn && MyPawn->IsAlive())
 		{
 			DrawHealth();
+			DrawFuelJetpack();
 			DrawWeaponHUD();
 		}
 		else
