@@ -74,10 +74,8 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
 	StrengthJetpack = 3000.f;
 	MaxFuelJetpack = 100.f;
 	CurrentFuelJetpack = MaxFuelJetpack;
-	FuelConsumptionRate = 0.5f;
-	FuelRechargeRate = 0.1f;
-
-	PrevAirControlValue = 0.f;
+	FuelConsumptionRate = 0.2f;
+	FuelRechargeRate = 0.15f;
 }
 
 void AShooterCharacter::PostInitializeComponents()
@@ -798,28 +796,14 @@ void AShooterCharacter::TeleportForward()
 
 void AShooterCharacter::StartUsingJetpack()
 {
-	UE_LOG(LogOnline, Warning, TEXT("Start Jetpack"));
-
 	bWantsToUseJetpack = true;
 
 	UShooterCharacterMovement* MoveComp = Cast<UShooterCharacterMovement>(this->GetCharacterMovement());
-
-	if (MoveComp) {
-		PrevAirControlValue = MoveComp->AirControl;
-		MoveComp->AirControl = 1.0;
-	}
 }
 
 void AShooterCharacter::StopUsingJetpack()
 {
-	UE_LOG(LogOnline, Warning, TEXT("Stop Jetpack"));
 	bWantsToUseJetpack = false;
-
-	UShooterCharacterMovement* MoveComp = Cast<UShooterCharacterMovement>(this->GetCharacterMovement());
-
-	if (MoveComp) {
-		MoveComp->AirControl = PrevAirControlValue;
-	}
 }
 
 void AShooterCharacter::UseJetpack()
@@ -829,8 +813,7 @@ void AShooterCharacter::UseJetpack()
 		UShooterCharacterMovement* MoveComp = Cast<UShooterCharacterMovement>(this->GetCharacterMovement());
 
 		if (MoveComp) {
-			ConsumeFuelJetpack();
-			MoveComp->AddImpulse(this->GetActorUpVector() * StrengthJetpack);
+			MoveComp->UseJetpack(StrengthJetpack);
 		}
 	}
 }
@@ -1124,8 +1107,6 @@ bool AShooterCharacter::IsRunning() const
 void AShooterCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-
-	//UE_LOG(LogOnline, Warning, TEXT("Current fuel: %f"), CurrentFuelJetpack);
 
 	if (bWantsToRunToggled && !IsRunning())
 	{

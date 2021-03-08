@@ -435,9 +435,6 @@ private:
 	/** Whether or not the character is moving (based on movement input). */
 	bool IsMoving();
 
-	/** Variable that store the previous value of Air Control */
-	float PrevAirControlValue;
-
 	//////////////////////////////////////////////////////////////////////////
 	// Damage & death
 

@@ -29,6 +29,10 @@ class UShooterCharacterMovement : public UCharacterMovementComponent
 		//Teleport
 		uint8 bSavedWantsToTeleport : 1;
 		FVector SavedTargetTeleportPosition;
+
+		//Jetpack
+		uint8 bSavedWantsToUseJetpack : 1;
+		FVector SavedImpulseVector;
 	};
 
 	class FNetworkPredictionData_Client_Shooter : public FNetworkPredictionData_Client_Character {
@@ -47,6 +51,7 @@ public:
 	void OnMovementUpdated(float DeltaTime, const FVector& OldLocation, const FVector & OldVelocity);
 
 
+	/** Teleport */
 	uint8 bWantsToTeleport : 1;
 	UFUNCTION(Unreliable, Server, WithValidation)
 		void Server_TeleportPosition(const FVector& TargetPosition);
@@ -56,5 +61,20 @@ public:
 		void TeleportForward(float DistTeleport);
 
 	FVector TargetTeleportPosition;
+
+	/** Jetpack */
+	uint8 bWantsToUseJetpack : 1;
+
+	UFUNCTION(Unreliable, Server, WithValidation)
+		void Server_UseJetpack(const FVector& NewImpulseVector);
+
+	//Trigger the use of jetpack (Called from the Client)
+	UFUNCTION(BlueprintCallable, Category = "Jetpack")
+		void UseJetpack(float StrengthJetpack);
+
+	FVector ImpulseVector;
+
+	// Variable that store the previous value of Air Control
+	float PrevAirControlValue;
 };
 

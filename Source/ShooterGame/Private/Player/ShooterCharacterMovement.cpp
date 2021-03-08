@@ -9,6 +9,7 @@
 UShooterCharacterMovement::UShooterCharacterMovement(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	PrevAirControlValue = 0.f;
 }
 
 float UShooterCharacterMovement::GetMaxSpeed() const
@@ -36,6 +37,7 @@ void UShooterCharacterMovement::UpdateFromCompressedFlags(uint8 Flags)
 	Super::UpdateFromCompressedFlags(Flags);
 
 	bWantsToTeleport = (Flags&FSavedMove_Character::FLAG_Custom_0) != 0;
+	bWantsToUseJetpack = (Flags&FSavedMove_Character::FLAG_Custom_1) != 0;
 }
 
 FNetworkPredictionData_Client * UShooterCharacterMovement::GetPredictionData_Client() const
@@ -67,6 +69,18 @@ void UShooterCharacterMovement::OnMovementUpdated(float DeltaTime, const FVector
 
 		CharacterOwner->SetActorLocation(TargetTeleportPosition, true);
 	}
+
+	if (bWantsToUseJetpack) {
+		bWantsToUseJetpack = false;
+
+		PrevAirControlValue = this->AirControl;
+		this->AirControl = 1.f;
+		this->AddImpulse(ImpulseVector);
+		Cast<AShooterCharacter>(CharacterOwner)->ConsumeFuelJetpack();
+	} else {
+		Cast<AShooterCharacter>(CharacterOwner)->RechargeFuelJetpack();
+		this->AirControl = PrevAirControlValue;
+	}
 }
 
 
@@ -80,6 +94,13 @@ bool UShooterCharacterMovement::FSavedMove_Shooter::CanCombineWith(const FSavedM
 		return false;
 	}
 
+	if (bSavedWantsToUseJetpack != ((FSavedMove_Shooter*)&NewMove)->bSavedWantsToUseJetpack) {
+		return false;
+	}
+	if (SavedImpulseVector != ((FSavedMove_Shooter*)&NewMove)->SavedImpulseVector) {
+		return false;
+	}
+
 	return Super::CanCombineWith(NewMove, Character, MaxDelta);
 }
 
@@ -89,6 +110,9 @@ void UShooterCharacterMovement::FSavedMove_Shooter::Clear()
 
 	bSavedWantsToTeleport = false;
 	SavedTargetTeleportPosition = FVector::ZeroVector;
+
+	bSavedWantsToUseJetpack = false;
+	SavedImpulseVector = FVector::ZeroVector;
 }
 
 uint8 UShooterCharacterMovement::FSavedMove_Shooter::GetCompressedFlags() const
@@ -97,6 +121,10 @@ uint8 UShooterCharacterMovement::FSavedMove_Shooter::GetCompressedFlags() const
 
 	if (bSavedWantsToTeleport) {
 		Result |= FLAG_Custom_0;
+	}
+
+	if (bSavedWantsToUseJetpack) {
+		Result |= FLAG_Custom_1;
 	}
 
 	return Result;
@@ -110,6 +138,9 @@ void UShooterCharacterMovement::FSavedMove_Shooter::SetMoveFor(ACharacter * Char
 	if (CharacterMovement) {
 		bSavedWantsToTeleport = CharacterMovement->bWantsToTeleport;
 		SavedTargetTeleportPosition = CharacterMovement->TargetTeleportPosition;
+
+		bSavedWantsToUseJetpack = CharacterMovement->bWantsToUseJetpack;
+		SavedImpulseVector = CharacterMovement->ImpulseVector;
 	}
 }
 
@@ -120,6 +151,8 @@ void UShooterCharacterMovement::FSavedMove_Shooter::PrepMoveFor(ACharacter * Cha
 	UShooterCharacterMovement* CharacterMovement = Cast<UShooterCharacterMovement>(Character->GetCharacterMovement());
 	if (CharacterMovement) {
 		CharacterMovement->TargetTeleportPosition = SavedTargetTeleportPosition;
+
+		CharacterMovement->ImpulseVector = SavedImpulseVector;
 	}
 }
 
@@ -151,3 +184,27 @@ void UShooterCharacterMovement::TeleportForward(float DistTeleport) {
 
 	bWantsToTeleport = true;
 }
+
+bool UShooterCharacterMovement::Server_UseJetpack_Validate(const FVector & NewImpulseVector)
+{
+	return true;
+}
+
+void UShooterCharacterMovement::Server_UseJetpack_Implementation(const FVector & NewImpulseVector)
+{
+	ImpulseVector = NewImpulseVector;
+}
+
+
+void UShooterCharacterMovement::UseJetpack(float StrengthJetpack)
+{
+	if (PawnOwner->IsLocallyControlled()) {
+		ImpulseVector = PawnOwner->GetActorUpVector() * StrengthJetpack;
+		Server_UseJetpack(ImpulseVector);
+	}
+
+	bWantsToUseJetpack = true;
+}
+
+
+
