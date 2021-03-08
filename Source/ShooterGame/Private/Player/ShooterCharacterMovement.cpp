@@ -65,7 +65,7 @@ void UShooterCharacterMovement::OnMovementUpdated(float DeltaTime, const FVector
 	if (bWantsToTeleport) {
 		bWantsToTeleport = false;
 
-		CharacterOwner->SetActorLocation(TargetTeleportPosition);
+		CharacterOwner->SetActorLocation(TargetTeleportPosition, true);
 	}
 }
 
@@ -143,7 +143,7 @@ void UShooterCharacterMovement::Server_TeleportPosition_Implementation(const FVe
 	TargetTeleportPosition = TargetPosition;
 }
 
-void UShooterCharacterMovement::TeleportForward(int DistTeleport) {
+void UShooterCharacterMovement::TeleportForward(float DistTeleport) {
 	if (PawnOwner->IsLocallyControlled()) {
 		TargetTeleportPosition = PawnOwner->GetActorLocation() + PawnOwner->GetActorForwardVector() * DistTeleport;
 		Server_TeleportPosition(TargetTeleportPosition);

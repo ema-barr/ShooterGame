@@ -310,8 +310,8 @@ protected:
 	uint8 bIsTargeting : 1;
 
 	/** default teleport distance */
-	UPROPERTY(EditAnywhere, Category = "Teleport")
-		float DistTeleport;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Teleport)
+		float DistTeleportMeters;
 
 	/** modifier for max movement speed */
 	UPROPERTY(EditDefaultsOnly, Category = Pawn)

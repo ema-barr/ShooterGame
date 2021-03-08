@@ -68,7 +68,7 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
 	BaseTurnRate = 45.f;
 	BaseLookUpRate = 45.f;
 
-	DistTeleport = 1000.f;
+	DistTeleportMeters = 10.f;
 }
 
 void AShooterCharacter::PostInitializeComponents()
@@ -768,15 +768,6 @@ void AShooterCharacter::SetRunning(bool bNewRunning, bool bToggle)
 	}
 }
 
-void AShooterCharacter::TeleportForward()
-{
-	UShooterCharacterMovement* MoveComp = Cast<UShooterCharacterMovement>(this->GetCharacterMovement());
-
-	if (MoveComp) {
-		MoveComp->TeleportForward(DistTeleport);
-	}
-}
-
 bool AShooterCharacter::ServerSetRunning_Validate(bool bNewRunning, bool bToggle)
 {
 	return true;
@@ -785,6 +776,15 @@ bool AShooterCharacter::ServerSetRunning_Validate(bool bNewRunning, bool bToggle
 void AShooterCharacter::ServerSetRunning_Implementation(bool bNewRunning, bool bToggle)
 {
 	SetRunning(bNewRunning, bToggle);
+}
+
+void AShooterCharacter::TeleportForward()
+{
+	UShooterCharacterMovement* MoveComp = Cast<UShooterCharacterMovement>(this->GetCharacterMovement());
+
+	if (MoveComp) {
+		MoveComp->TeleportForward(DistTeleportMeters * 100);
+	}
 }
 
 void AShooterCharacter::UpdateRunSounds()
