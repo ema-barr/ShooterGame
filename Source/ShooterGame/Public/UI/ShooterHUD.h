@@ -329,6 +329,9 @@ protected:
 	/** Draw player's fuel bar */
 	void DrawFuelJetpack();
 
+	/** Draw rewind status */
+	void DrawRewindStatus();
+
 	/** Draws match timer and player position. */
 	void DrawMatchTimerAndPosition();
 

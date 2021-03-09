@@ -129,6 +129,14 @@ class AShooterCharacter : public ACharacter
 	/** consume fuel of jetpack */
 	void ConsumeFuelJetpack();
 
+	/** activate the rewind ability */
+	void StartRewind();
+	/** rewind the movement of the player*/
+	void Rewind();
+	/** Add new position for the rewind */
+	void AddNewPosition();
+
+
 	//////////////////////////////////////////////////////////////////////////
 	// Animations
 
@@ -272,6 +280,9 @@ class AShooterCharacter : public ACharacter
 	/** get current fuel jetpack */
 	float GetCurrentFuelJetpack() const;
 
+	/** get current rewind status (READY, ACTIVE, or seconds of CD) */
+	FString GetRewindStatus() const;
+
 	/** check if pawn is still alive */
 	bool IsAlive() const;
 
@@ -337,7 +348,38 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Jetpack)
 		float MaxFuelJetpack;
 
+	/** current fuel of jetpack */
 	float CurrentFuelJetpack;
+
+	/** array of previous transforms of the player (used by rewind function) */
+	TArray<FTransform> PastTransformsPlayer;
+	/** default seconds to rewind */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rewind)
+		float SecsToRewind;
+	/** default number of positions to save for rewind ability */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rewind)
+		int NumPositionsToSave;
+	/** default rewind movement tolerance (high values = high tolerance) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rewind)
+		float RewindTolerance;
+	/** default rewind cooldown  */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rewind)
+		float RewindCD;
+	/** default rewind movement speed */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rewind)
+		float RewindMovSpeed;
+	/** default rewind rotation speed */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Rewind)
+		float RewindRotSpeed;
+	/** Time in seconds between two different saved positions */
+	float SecsBetweenPositions;
+	/** Timer for saving positions */
+	float TimerSavingPositions;
+	/** Timer for rewind CD */
+	float TimerRewindCD;
+	/** status of rewind CD */
+	uint8 bRewindReady : 1;
+
 
 	/** default percentage of jetpack fuel consumed every second */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Jetpack)
@@ -355,7 +397,11 @@ protected:
 	UPROPERTY(Transient, Replicated)
 	uint8 bWantsToRun : 1;
 
+	/** current jetpack state */
 	uint8 bWantsToUseJetpack : 1;
+
+	/** current rewind state */
+	uint8 bWantsToRewind : 1;
 
 	/** from gamepad running is toggled */
 	uint8 bWantsToRunToggled : 1;

@@ -12,7 +12,7 @@ class UShooterCharacterMovement : public UCharacterMovementComponent
 {
 	GENERATED_UCLASS_BODY()
 
-	virtual float GetMaxSpeed() const override;
+		virtual float GetMaxSpeed() const override;
 
 
 	class FSavedMove_Shooter : public FSavedMove_Character {
@@ -33,6 +33,11 @@ class UShooterCharacterMovement : public UCharacterMovementComponent
 		//Jetpack
 		uint8 bSavedWantsToUseJetpack : 1;
 		FVector SavedImpulseVector;
+
+		//Rewind
+		uint8 bSavedWantsToRewind : 1;
+		FVector SavedPositionRewind;
+		FQuat SavedRotationRewind;
 	};
 
 	class FNetworkPredictionData_Client_Shooter : public FNetworkPredictionData_Client_Character {
@@ -76,5 +81,19 @@ public:
 
 	// Variable that store the previous value of Air Control
 	float PrevAirControlValue;
+
+
+	/** Rewind */
+	uint8 bWantsToRewind : 1;
+
+	UFUNCTION(Unreliable, Server, WithValidation)
+		void Server_ActiveRewind(const FVector& NewPositionRewind, const FQuat& NewRotationRewind);
+
+	//Trigger the use of rewind (Called from the Client)
+	UFUNCTION(BlueprintCallable, Category = "Rewind")
+		void ActiveRewind(FVector& NewPositionRewind, FQuat& NewRotationRewind);
+
+	FVector PositionRewind;
+	FQuat RotationRewind;
 };
 

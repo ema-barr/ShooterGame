@@ -63,6 +63,7 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
 	RunningSpeedModifier = 1.5f;
 	bWantsToRun = false;
 	bWantsToUseJetpack = false;
+	bWantsToRewind = false;
 	bWantsToFire = false;
 	LowHealthPercentage = 0.5f;
 
@@ -76,6 +77,17 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
 	CurrentFuelJetpack = MaxFuelJetpack;
 	FuelConsumptionRate = 0.2f;
 	FuelRechargeRate = 0.15f;
+
+	SecsToRewind = 5.f;
+	NumPositionsToSave = 10;
+	RewindTolerance = 500.f;
+	RewindCD = 12.f;
+	RewindMovSpeed = 6.f;
+	RewindRotSpeed = 60.f;
+	SecsBetweenPositions = SecsToRewind / NumPositionsToSave;
+	TimerSavingPositions = 0.f;
+	TimerRewindCD = 0.f;
+	bRewindReady = true;
 }
 
 void AShooterCharacter::PostInitializeComponents()
@@ -833,6 +845,60 @@ void AShooterCharacter::ConsumeFuelJetpack()
 	CurrentFuelJetpack = FMath::Max(TempDecreasedFuelJetpack, 0.f);
 }
 
+void AShooterCharacter::StartRewind()
+{
+	if (bRewindReady) {
+		bRewindReady = false;
+		TimerRewindCD = RewindCD;
+		bWantsToRewind = true;
+	}
+}
+
+void AShooterCharacter::Rewind()
+{
+	if (PastTransformsPlayer.Num() > 0) {
+		FTransform position = PastTransformsPlayer.Last();
+
+		UShooterCharacterMovement* MoveComp = Cast<UShooterCharacterMovement>(this->GetCharacterMovement());
+
+		if (MoveComp) {
+			
+			FVector transformInterpolation = FMath::Lerp(this->GetActorLocation(), position.GetLocation(), GetWorld()->DeltaTimeSeconds * RewindMovSpeed);
+			FQuat rotatorInterpolation = FQuat::Slerp(this->GetActorRotation().Quaternion(), position.GetRotation(), GetWorld()->DeltaTimeSeconds * RewindRotSpeed);
+			MoveComp->ActiveRewind(transformInterpolation, rotatorInterpolation);
+		}
+
+		
+
+
+		/*FTransform position = PastTransformsPlayer.Last();
+		FVector transformInterpolation = FMath::Lerp(this->GetActorLocation(), position.GetLocation(), GetWorld()->DeltaTimeSeconds * RewindMovSpeed);
+		FQuat rotatorInterpolation = FQuat::Slerp(this->GetActorRotation().Quaternion(), position.GetRotation(), GetWorld()->DeltaTimeSeconds * RewindRotSpeed);
+
+		this->SetActorLocation(transformInterpolation, false);
+		this->GetController()->SetControlRotation(rotatorInterpolation.Rotator());
+		*/
+
+		if (this->GetActorLocation().Equals(position.GetLocation(), RewindTolerance)) {
+			PastTransformsPlayer.RemoveAt(PastTransformsPlayer.Num() - 1);
+		}
+
+		if (PastTransformsPlayer.Num() == 0) {
+			bWantsToRewind = false;
+		}
+	}
+
+}
+
+void AShooterCharacter::AddNewPosition() {
+	PastTransformsPlayer.Emplace(this->GetActorTransform());
+	TimerSavingPositions = SecsBetweenPositions;
+
+	if (PastTransformsPlayer.Num() > NumPositionsToSave) {
+		PastTransformsPlayer.RemoveAt(0);
+	}
+}
+
 void AShooterCharacter::UpdateRunSounds()
 {
 	const bool bIsRunSoundPlaying = RunLoopAC != nullptr && RunLoopAC->IsActive();
@@ -934,6 +1000,8 @@ void AShooterCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 
 	PlayerInputComponent->BindAction("Jetpack", IE_Pressed, this, &AShooterCharacter::StartUsingJetpack);
 	PlayerInputComponent->BindAction("Jetpack", IE_Released, this, &AShooterCharacter::StopUsingJetpack);
+
+	PlayerInputComponent->BindAction("Rewind", IE_Pressed, this, &AShooterCharacter::StartRewind);
 }
 
 
@@ -1108,6 +1176,24 @@ void AShooterCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
+	TimerSavingPositions -= GetWorld()->DeltaTimeSeconds;
+
+	if (TimerSavingPositions < 0.f && !bWantsToRewind) {
+		//Save the position for the rewind if the player is not rewinding
+		AddNewPosition();
+	} 
+	if (TimerRewindCD <= 0.f) {
+		bRewindReady = true;
+	}
+	else if (!bWantsToRewind){
+		//The timer starts only at the end of the rewind
+		TimerRewindCD -= GetWorld()->DeltaTimeSeconds;
+	}
+
+	if (PastTransformsPlayer.Num() == 0) {
+		PastTransformsPlayer.Emplace(this->GetActorTransform());
+	}
+
 	if (bWantsToRunToggled && !IsRunning())
 	{
 		SetRunning(false, false);
@@ -1118,6 +1204,10 @@ void AShooterCharacter::Tick(float DeltaSeconds)
 	}
 	else {
 		RechargeFuelJetpack();
+	}
+
+	if (bWantsToRewind) {
+		Rewind();
 	}
 
 	AShooterPlayerController* MyPC = Cast<AShooterPlayerController>(Controller);
@@ -1343,6 +1433,21 @@ float AShooterCharacter::GetMaxFuelJetpack() const
 float AShooterCharacter::GetCurrentFuelJetpack() const
 {
 	return CurrentFuelJetpack;
+}
+
+FString AShooterCharacter::GetRewindStatus() const
+{
+	FString status;
+	if (bWantsToRewind) {
+		status = "ACTIVE";
+	}
+	else if (bRewindReady) {
+		status = "READY";
+	}
+	else {
+		status = FString::FromInt(TimerRewindCD);
+	}
+	return status;
 }
 
 bool AShooterCharacter::IsAlive() const

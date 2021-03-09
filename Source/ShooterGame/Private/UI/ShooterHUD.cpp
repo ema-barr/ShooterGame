@@ -351,6 +351,32 @@ void AShooterHUD::DrawFuelJetpack()
 	Canvas->DrawItem(TileItem);
 }
 
+void AShooterHUD::DrawRewindStatus()
+{
+	AShooterCharacter* MyPawn = Cast<AShooterCharacter>(GetOwningPawn());
+
+	Canvas->SetDrawColor(FColor::White);
+	float RewindPosX = Canvas->OrgX + Offset * ScaleUI;
+	float RewindPosY = Canvas->OrgY + 10 * Offset * ScaleUI;
+	Canvas->DrawIcon(KillsBg, RewindPosX, RewindPosY, ScaleUI);
+
+	float TextScale = 0.53f;
+	FCanvasTextItem TextItem(FVector2D::ZeroVector, FText::GetEmpty(), BigFont, HUDDark);
+	TextItem.EnableShadow(FLinearColor::Black);
+
+	float SizeX, SizeY;
+	FString Text = FText::Format(LOCTEXT("Rewind", "Rewind: {0}"), FText::FromString(MyPawn->GetRewindStatus())).ToString();
+	Canvas->StrLen(BigFont, Text, SizeX, SizeY);
+
+	TextItem.Text = FText::FromString(Text);
+	TextItem.Scale = FVector2D(TextScale * ScaleUI, TextScale * ScaleUI);
+	TextItem.FontRenderInfo = ShadowedFont;
+	TextItem.SetColor(HUDDark);
+	Canvas->DrawItem(TextItem, RewindPosX + Offset * ScaleUI,
+		RewindPosY + (KillsBg.VL * ScaleUI - SizeY * TextScale * ScaleUI) / 2);
+
+}
+
 void AShooterHUD::DrawMatchTimerAndPosition()
 {
 	AShooterGameState* const MyGameState = GetWorld()->GetGameState<AShooterGameState>();
@@ -591,6 +617,7 @@ void AShooterHUD::DrawHUD()
 		if (MyPC)
 		{
 			DrawKills();
+			DrawRewindStatus();
 		}
 		if (MyPawn && MyPawn->IsAlive())
 		{

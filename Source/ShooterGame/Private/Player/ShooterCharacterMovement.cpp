@@ -38,6 +38,7 @@ void UShooterCharacterMovement::UpdateFromCompressedFlags(uint8 Flags)
 
 	bWantsToTeleport = (Flags&FSavedMove_Character::FLAG_Custom_0) != 0;
 	bWantsToUseJetpack = (Flags&FSavedMove_Character::FLAG_Custom_1) != 0;
+	bWantsToRewind = (Flags&FSavedMove_Character::FLAG_Custom_2) != 0;
 }
 
 FNetworkPredictionData_Client * UShooterCharacterMovement::GetPredictionData_Client() const
@@ -77,9 +78,17 @@ void UShooterCharacterMovement::OnMovementUpdated(float DeltaTime, const FVector
 		this->AirControl = 1.f;
 		this->AddImpulse(ImpulseVector);
 		Cast<AShooterCharacter>(CharacterOwner)->ConsumeFuelJetpack();
-	} else {
+	}
+	else {
 		Cast<AShooterCharacter>(CharacterOwner)->RechargeFuelJetpack();
 		this->AirControl = PrevAirControlValue;
+	}
+
+	if (bWantsToRewind) {
+		bWantsToRewind = false;
+
+		CharacterOwner->SetActorLocation(PositionRewind, false);
+		CharacterOwner->GetController()->SetControlRotation(RotationRewind.Rotator());
 	}
 }
 
@@ -101,6 +110,16 @@ bool UShooterCharacterMovement::FSavedMove_Shooter::CanCombineWith(const FSavedM
 		return false;
 	}
 
+	if (bSavedWantsToRewind != ((FSavedMove_Shooter*)&NewMove)->bSavedWantsToRewind) {
+		return false;
+	}
+	if (SavedPositionRewind != ((FSavedMove_Shooter*)&NewMove)->SavedPositionRewind) {
+		return false;
+	}
+	if (SavedRotationRewind != ((FSavedMove_Shooter*)&NewMove)->SavedRotationRewind) {
+		return false;
+	}
+
 	return Super::CanCombineWith(NewMove, Character, MaxDelta);
 }
 
@@ -113,6 +132,10 @@ void UShooterCharacterMovement::FSavedMove_Shooter::Clear()
 
 	bSavedWantsToUseJetpack = false;
 	SavedImpulseVector = FVector::ZeroVector;
+
+	bSavedWantsToRewind = false;
+	SavedPositionRewind = FVector::ZeroVector;
+	SavedRotationRewind = FQuat::Identity;
 }
 
 uint8 UShooterCharacterMovement::FSavedMove_Shooter::GetCompressedFlags() const
@@ -125,6 +148,10 @@ uint8 UShooterCharacterMovement::FSavedMove_Shooter::GetCompressedFlags() const
 
 	if (bSavedWantsToUseJetpack) {
 		Result |= FLAG_Custom_1;
+	}
+
+	if (bSavedWantsToRewind) {
+		Result |= FLAG_Custom_2;
 	}
 
 	return Result;
@@ -141,6 +168,10 @@ void UShooterCharacterMovement::FSavedMove_Shooter::SetMoveFor(ACharacter * Char
 
 		bSavedWantsToUseJetpack = CharacterMovement->bWantsToUseJetpack;
 		SavedImpulseVector = CharacterMovement->ImpulseVector;
+
+		bSavedWantsToRewind = CharacterMovement->bWantsToRewind;
+		SavedPositionRewind = CharacterMovement->PositionRewind;
+		SavedRotationRewind = CharacterMovement->RotationRewind;
 	}
 }
 
@@ -153,6 +184,9 @@ void UShooterCharacterMovement::FSavedMove_Shooter::PrepMoveFor(ACharacter * Cha
 		CharacterMovement->TargetTeleportPosition = SavedTargetTeleportPosition;
 
 		CharacterMovement->ImpulseVector = SavedImpulseVector;
+
+		CharacterMovement->PositionRewind = SavedPositionRewind;
+		CharacterMovement->RotationRewind = SavedRotationRewind;
 	}
 }
 
@@ -204,6 +238,28 @@ void UShooterCharacterMovement::UseJetpack(float StrengthJetpack)
 	}
 
 	bWantsToUseJetpack = true;
+}
+
+bool UShooterCharacterMovement::Server_ActiveRewind_Validate(const FVector& NewPositionRewind, const FQuat& NewRotationRewind)
+{
+	return true;
+}
+
+void UShooterCharacterMovement::Server_ActiveRewind_Implementation(const FVector& NewPositionRewind, const FQuat& NewRotationRewind)
+{
+	PositionRewind = NewPositionRewind;
+	RotationRewind = NewRotationRewind;
+}
+
+void UShooterCharacterMovement::ActiveRewind(FVector& NewPositionRewind, FQuat& NewRotationRewind)
+{
+	if (PawnOwner->IsLocallyControlled()) {
+		PositionRewind = NewPositionRewind;
+		RotationRewind = NewRotationRewind;
+		Server_ActiveRewind(PositionRewind, RotationRewind);
+	}
+
+	bWantsToRewind = true;
 }
 
 
