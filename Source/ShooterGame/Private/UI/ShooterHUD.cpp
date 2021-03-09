@@ -617,6 +617,8 @@ void AShooterHUD::DrawHUD()
 		if (MyPC)
 		{
 			DrawKills();
+		}
+		if (MyPawn) {
 			DrawRewindStatus();
 		}
 		if (MyPawn && MyPawn->IsAlive())

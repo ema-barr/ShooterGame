@@ -868,17 +868,6 @@ void AShooterCharacter::Rewind()
 			MoveComp->ActiveRewind(transformInterpolation, rotatorInterpolation);
 		}
 
-		
-
-
-		/*FTransform position = PastTransformsPlayer.Last();
-		FVector transformInterpolation = FMath::Lerp(this->GetActorLocation(), position.GetLocation(), GetWorld()->DeltaTimeSeconds * RewindMovSpeed);
-		FQuat rotatorInterpolation = FQuat::Slerp(this->GetActorRotation().Quaternion(), position.GetRotation(), GetWorld()->DeltaTimeSeconds * RewindRotSpeed);
-
-		this->SetActorLocation(transformInterpolation, false);
-		this->GetController()->SetControlRotation(rotatorInterpolation.Rotator());
-		*/
-
 		if (this->GetActorLocation().Equals(position.GetLocation(), RewindTolerance)) {
 			PastTransformsPlayer.RemoveAt(PastTransformsPlayer.Num() - 1);
 		}
