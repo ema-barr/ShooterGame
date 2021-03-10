@@ -875,6 +875,8 @@ void AShooterCharacter::Rewind()
 		if (PastTransformsPlayer.Num() == 0) {
 			bWantsToRewind = false;
 		}
+	} else {
+		bWantsToRewind = false;
 	}
 
 }
