@@ -915,11 +915,14 @@ void AShooterCharacter::WallJump()
 		if (bIsHit) {
 			while (!bWallFound && HitsCounter < OutHits.Num()){
 				FHitResult* Hit = &OutHits[HitsCounter];
-
-				if (Hit->Actor->GetClass()->GetFullName() != this->GetClass()->GetFullName() && Hit->ImpactNormal.Z < 0.5f) {
-					//Check if the actor hit a wall
-					bWallFound = true;
-					JumpDirection = Hit->ImpactNormal;
+				
+				if (Hit->Actor != NULL) {
+					//Check if we hit a valid actor (avoiding problems with brushes)
+					if (Hit->Actor->GetClass()->GetFullName() != this->GetClass()->GetFullName() && Hit->ImpactNormal.Z < 0.5f) {
+						//Check if the actor hit a wall
+						bWallFound = true;
+						JumpDirection = Hit->ImpactNormal;
+					}
 				}
 
 				HitsCounter++;
