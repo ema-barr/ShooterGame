@@ -38,6 +38,10 @@ class UShooterCharacterMovement : public UCharacterMovementComponent
 		uint8 bSavedWantsToRewind : 1;
 		FVector SavedPositionRewind;
 		FQuat SavedRotationRewind;
+
+		//WallJump
+		uint8 bSavedWantsToWallJump : 1;
+		FVector SavedWallJumpDirection;
 	};
 
 	class FNetworkPredictionData_Client_Shooter : public FNetworkPredictionData_Client_Character {
@@ -95,5 +99,17 @@ public:
 
 	FVector PositionRewind;
 	FQuat RotationRewind;
+
+	/** Wall Jump */
+	uint8 bWantsToWallJump : 1;
+
+	UFUNCTION(Unreliable, Server, WithValidation)
+		void Server_WallJump(const FVector& NewWallJumpDirection);
+
+	//Trigger the wall jump (Called from the Client)
+	UFUNCTION(BlueprintCallable, Category = "WallJump")
+		void WallJump(FVector& NewWallJumpDirection);
+
+	FVector WallJumpDirection;
 };
 

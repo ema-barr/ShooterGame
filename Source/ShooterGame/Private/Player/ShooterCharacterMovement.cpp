@@ -39,6 +39,7 @@ void UShooterCharacterMovement::UpdateFromCompressedFlags(uint8 Flags)
 	bWantsToTeleport = (Flags&FSavedMove_Character::FLAG_Custom_0) != 0;
 	bWantsToUseJetpack = (Flags&FSavedMove_Character::FLAG_Custom_1) != 0;
 	bWantsToRewind = (Flags&FSavedMove_Character::FLAG_Custom_2) != 0;
+	bWantsToWallJump = (Flags&FSavedMove_Character::FLAG_Custom_3) != 0;
 }
 
 FNetworkPredictionData_Client * UShooterCharacterMovement::GetPredictionData_Client() const
@@ -90,6 +91,12 @@ void UShooterCharacterMovement::OnMovementUpdated(float DeltaTime, const FVector
 		CharacterOwner->SetActorLocation(PositionRewind, false);
 		CharacterOwner->GetController()->SetControlRotation(RotationRewind.Rotator());
 	}
+
+	if (bWantsToWallJump) {
+		bWantsToWallJump = false;
+
+		CharacterOwner->LaunchCharacter(WallJumpDirection, true, true);
+	}
 }
 
 
@@ -120,6 +127,13 @@ bool UShooterCharacterMovement::FSavedMove_Shooter::CanCombineWith(const FSavedM
 		return false;
 	}
 
+	if (bSavedWantsToWallJump != ((FSavedMove_Shooter*)&NewMove)->bSavedWantsToWallJump) {
+		return false;
+	}
+	if (SavedWallJumpDirection != ((FSavedMove_Shooter*)&NewMove)->SavedWallJumpDirection) {
+		return false;
+	}
+
 	return Super::CanCombineWith(NewMove, Character, MaxDelta);
 }
 
@@ -136,6 +150,9 @@ void UShooterCharacterMovement::FSavedMove_Shooter::Clear()
 	bSavedWantsToRewind = false;
 	SavedPositionRewind = FVector::ZeroVector;
 	SavedRotationRewind = FQuat::Identity;
+
+	bSavedWantsToWallJump = false;
+	SavedWallJumpDirection = FVector::ZeroVector;
 }
 
 uint8 UShooterCharacterMovement::FSavedMove_Shooter::GetCompressedFlags() const
@@ -152,6 +169,10 @@ uint8 UShooterCharacterMovement::FSavedMove_Shooter::GetCompressedFlags() const
 
 	if (bSavedWantsToRewind) {
 		Result |= FLAG_Custom_2;
+	}
+
+	if (bSavedWantsToWallJump) {
+		Result |= FLAG_Custom_3;
 	}
 
 	return Result;
@@ -172,6 +193,9 @@ void UShooterCharacterMovement::FSavedMove_Shooter::SetMoveFor(ACharacter * Char
 		bSavedWantsToRewind = CharacterMovement->bWantsToRewind;
 		SavedPositionRewind = CharacterMovement->PositionRewind;
 		SavedRotationRewind = CharacterMovement->RotationRewind;
+
+		bSavedWantsToWallJump = CharacterMovement->bWantsToWallJump;
+		SavedWallJumpDirection = CharacterMovement->WallJumpDirection;
 	}
 }
 
@@ -187,6 +211,8 @@ void UShooterCharacterMovement::FSavedMove_Shooter::PrepMoveFor(ACharacter * Cha
 
 		CharacterMovement->PositionRewind = SavedPositionRewind;
 		CharacterMovement->RotationRewind = SavedRotationRewind;
+
+		CharacterMovement->WallJumpDirection = SavedWallJumpDirection;
 	}
 }
 
@@ -260,6 +286,26 @@ void UShooterCharacterMovement::ActiveRewind(FVector& NewPositionRewind, FQuat& 
 	}
 
 	bWantsToRewind = true;
+}
+
+bool UShooterCharacterMovement::Server_WallJump_Validate(const FVector & NewWallJumpDirection)
+{
+	return true;
+}
+
+void UShooterCharacterMovement::Server_WallJump_Implementation(const FVector & NewWallJumpDirection)
+{
+	WallJumpDirection = NewWallJumpDirection;
+}
+
+void UShooterCharacterMovement::WallJump(FVector & NewWallJumpDirection)
+{
+	if (PawnOwner->IsLocallyControlled()) {
+		WallJumpDirection = NewWallJumpDirection;
+		Server_WallJump(WallJumpDirection);
+	}
+
+	bWantsToWallJump = true;
 }
 
 

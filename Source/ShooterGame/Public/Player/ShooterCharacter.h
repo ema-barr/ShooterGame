@@ -136,6 +136,9 @@ class AShooterCharacter : public ACharacter
 	/** Add new position for the rewind */
 	void AddNewPosition();
 
+	/** make a wall jump */
+	void WallJump();
+
 
 	//////////////////////////////////////////////////////////////////////////
 	// Animations
@@ -343,11 +346,15 @@ protected:
 	/** default strength of jetpack */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Jetpack)
 		float StrengthJetpack;
-
 	/** default max fuel of jetpack */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Jetpack)
 		float MaxFuelJetpack;
-
+	/** default percentage of jetpack fuel consumed every second */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Jetpack)
+		float FuelConsumptionRate;
+	/** default percentage of jetpack fuel recharged every second */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Jetpack)
+		float FuelRechargeRate;
 	/** current fuel of jetpack */
 	float CurrentFuelJetpack;
 
@@ -380,14 +387,15 @@ protected:
 	/** status of rewind CD */
 	uint8 bRewindReady : 1;
 
-
-	/** default percentage of jetpack fuel consumed every second */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Jetpack)
-		float FuelConsumptionRate;
-
-	/** default percentage of jetpack fuel recharged every second */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Jetpack)
-		float FuelRechargeRate;
+	/** default horizontal strength of wall jump */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WallJump)
+		float StrengthHorizWallJump;
+	/** default vertical strength of wall jump */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WallJump)
+		float StrengthVertWallJump;
+	/** default radius offset to detect walls for wall jump */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = WallJump)
+		float OffsetDetectWall;
 
 	/** modifier for max movement speed */
 	UPROPERTY(EditDefaultsOnly, Category = Pawn)

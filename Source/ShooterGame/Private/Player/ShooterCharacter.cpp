@@ -88,6 +88,10 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
 	TimerSavingPositions = 0.f;
 	TimerRewindCD = 0.f;
 	bRewindReady = true;
+
+	StrengthHorizWallJump = 400.f;
+	StrengthVertWallJump = 600.f;
+	OffsetDetectWall = 80.f;
 }
 
 void AShooterCharacter::PostInitializeComponents()
@@ -857,18 +861,18 @@ void AShooterCharacter::StartRewind()
 void AShooterCharacter::Rewind()
 {
 	if (PastTransformsPlayer.Num() > 0) {
-		FTransform position = PastTransformsPlayer.Last();
+		FTransform Position = PastTransformsPlayer.Last();
 
 		UShooterCharacterMovement* MoveComp = Cast<UShooterCharacterMovement>(this->GetCharacterMovement());
 
 		if (MoveComp) {
 			
-			FVector transformInterpolation = FMath::Lerp(this->GetActorLocation(), position.GetLocation(), GetWorld()->DeltaTimeSeconds * RewindMovSpeed);
-			FQuat rotatorInterpolation = FQuat::Slerp(this->GetActorRotation().Quaternion(), position.GetRotation(), GetWorld()->DeltaTimeSeconds * RewindRotSpeed);
+			FVector transformInterpolation = FMath::Lerp(this->GetActorLocation(), Position.GetLocation(), GetWorld()->DeltaTimeSeconds * RewindMovSpeed);
+			FQuat rotatorInterpolation = FQuat::Slerp(this->GetActorRotation().Quaternion(), Position.GetRotation(), GetWorld()->DeltaTimeSeconds * RewindRotSpeed);
 			MoveComp->ActiveRewind(transformInterpolation, rotatorInterpolation);
 		}
 
-		if (this->GetActorLocation().Equals(position.GetLocation(), RewindTolerance)) {
+		if (this->GetActorLocation().Equals(Position.GetLocation(), RewindTolerance)) {
 			PastTransformsPlayer.RemoveAt(PastTransformsPlayer.Num() - 1);
 		}
 
@@ -887,6 +891,52 @@ void AShooterCharacter::AddNewPosition() {
 
 	if (PastTransformsPlayer.Num() > NumPositionsToSave) {
 		PastTransformsPlayer.RemoveAt(0);
+	}
+}
+
+void AShooterCharacter::WallJump()
+{
+
+	UCapsuleComponent* CapsuleComp = this->GetCapsuleComponent();
+	if (CapsuleComp) {
+		float Radius = CapsuleComp->GetScaledCapsuleRadius();
+		float HalfHeight = CapsuleComp->GetScaledCapsuleHalfHeight();
+
+		FCollisionShape CapsuleShape = FCollisionShape::MakeCapsule(Radius + OffsetDetectWall, HalfHeight);
+		
+		TArray<FHitResult> OutHits;
+		bool bIsHit = GetWorld()->SweepMultiByChannel(OutHits, this->GetActorLocation(), this->GetActorLocation(), FQuat::Identity,
+			ECC_Visibility, CapsuleShape);
+
+		bool bWallFound = false;
+		int32 HitsCounter = 0;
+		FVector JumpDirection = FVector::ZeroVector;
+
+		if (bIsHit) {
+			while (!bWallFound && HitsCounter < OutHits.Num()){
+				FHitResult* Hit = &OutHits[HitsCounter];
+
+				if (Hit->Actor->GetClass()->GetFullName() != this->GetClass()->GetFullName() && Hit->ImpactNormal.Z < 0.5f) {
+					//Check if the actor hit a wall
+					bWallFound = true;
+					JumpDirection = Hit->ImpactNormal;
+				}
+
+				HitsCounter++;
+			}
+
+			if (bWallFound) {				
+				UShooterCharacterMovement* MoveComp = Cast<UShooterCharacterMovement>(this->GetCharacterMovement());
+
+				if (MoveComp) {
+					JumpDirection.X *= StrengthHorizWallJump;
+					JumpDirection.Y *= StrengthHorizWallJump;
+					JumpDirection.Z = StrengthVertWallJump;
+
+					MoveComp->WallJump(JumpDirection);
+				}
+			}
+		}
 	}
 }
 
@@ -1282,6 +1332,12 @@ void AShooterCharacter::OnStartJump()
 	if (MyPC && MyPC->IsGameInputAllowed())
 	{
 		bPressedJump = true;
+	}
+
+
+	UShooterCharacterMovement* MoveComp = Cast<UShooterCharacterMovement>(this->GetCharacterMovement());
+	if (MoveComp && !MoveComp->IsMovingOnGround()) {
+		WallJump();
 	}
 }
 
