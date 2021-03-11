@@ -813,8 +813,6 @@ void AShooterCharacter::TeleportForward()
 void AShooterCharacter::StartUsingJetpack()
 {
 	bWantsToUseJetpack = true;
-
-	UShooterCharacterMovement* MoveComp = Cast<UShooterCharacterMovement>(this->GetCharacterMovement());
 }
 
 void AShooterCharacter::StopUsingJetpack()
@@ -846,7 +844,6 @@ void AShooterCharacter::ConsumeFuelJetpack()
 {
 	float TempDecreasedFuelJetpack = CurrentFuelJetpack - (FuelConsumptionRate * MaxFuelJetpack *  GetWorld()->GetDeltaSeconds());
 	CurrentFuelJetpack = FMath::Max(TempDecreasedFuelJetpack, 0.f);
-	CurrentFuelJetpack = FMath::Max(TempDecreasedFuelJetpack, 0.f);
 }
 
 void AShooterCharacter::StartRewind()
@@ -866,10 +863,9 @@ void AShooterCharacter::Rewind()
 		UShooterCharacterMovement* MoveComp = Cast<UShooterCharacterMovement>(this->GetCharacterMovement());
 
 		if (MoveComp) {
-			
-			FVector transformInterpolation = FMath::Lerp(this->GetActorLocation(), Position.GetLocation(), GetWorld()->DeltaTimeSeconds * RewindMovSpeed);
-			FQuat rotatorInterpolation = FQuat::Slerp(this->GetActorRotation().Quaternion(), Position.GetRotation(), GetWorld()->DeltaTimeSeconds * RewindRotSpeed);
-			MoveComp->ActiveRewind(transformInterpolation, rotatorInterpolation);
+			FVector TransformInterpolation = FMath::Lerp(this->GetActorLocation(), Position.GetLocation(), GetWorld()->DeltaTimeSeconds * RewindMovSpeed);
+			FQuat RotatorInterpolation = FQuat::Slerp(this->GetActorRotation().Quaternion(), Position.GetRotation(), GetWorld()->DeltaTimeSeconds * RewindRotSpeed);
+			MoveComp->ActiveRewind(TransformInterpolation, RotatorInterpolation);
 		}
 
 		if (this->GetActorLocation().Equals(Position.GetLocation(), RewindTolerance)) {
@@ -1495,7 +1491,7 @@ FString AShooterCharacter::GetRewindStatus() const
 		status = "READY";
 	}
 	else {
-		status = FString::FromInt(TimerRewindCD);
+		status = FString::FromInt(FGenericPlatformMath::CeilToInt(TimerRewindCD));
 	}
 	return status;
 }
